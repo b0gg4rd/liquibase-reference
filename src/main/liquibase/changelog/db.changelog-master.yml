@@ -1,0 +1,21 @@
+databaseChangeLog:
+  # DDL
+  - include:
+      file: db.changelog-ddl-state.sql
+      relativeToChangelogFile: true
+  - include:
+      file: db.changelog-ddl-gender.sql
+      relativeToChangelogFile: true
+  - include:
+      file: db.changelog-ddl-person.sql
+      relativeToChangelogFile: true
+  - include:
+      file: db.changelog-ddl-address.sql
+      relativeToChangelogFile: true
+  # DML
+  - include:
+      file: db.changelog-dml-state.sql
+      relativeToChangelogFile: true
+  - include:
+      file: db.changelog-dml-gender.sql
+      relativeToChangelogFile: true

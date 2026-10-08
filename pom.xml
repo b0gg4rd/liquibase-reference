@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>net.coatli</groupId>
+  <artifactId>liquibase-reference</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>liquibase-reference</name>
+  <description>Liquibase Reference - person, address, state, gender</description>
+
+  <properties>
+    <project.build.environment>managed</project.build.environment>
+    <project.build.filterDirectory>${basedir}/src/main/filters</project.build.filterDirectory>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <properties.maven.plugin.version>1.2.1</properties.maven.plugin.version>
+    <docker.maven.plugin.version>0.48.1</docker.maven.plugin.version>
+
+    <postgresql.image.version>postgres:17.10</postgresql.image.version>
+    <liquibase.image.version>liquibase:4.33.0-alpine</liquibase.image.version>
+
+    <liquibase.build.directory>${project.basedir}/src/main/liquibase</liquibase.build.directory>
+  </properties>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+
+    <resources>
+      <resource>
+        <directory>${liquibase.build.directory}</directory>
+        <targetPath>liquibase</targetPath>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+    <filters>
+      <filter>${project.build.filterDirectory}/${project.build.environment}.properties</filter>
+    </filters>
+
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>${properties.maven.plugin.version}</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>read-project-properties</goal>
+            </goals>
+            <configuration>
+              <files>
+                <file>${project.build.filterDirectory}/${project.build.environment}.properties</file>
+              </files>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>io.fabric8</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <version>${docker.maven.plugin.version}</version>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>managed</id>
+      <properties>
+        <project.build.environment>managed</project.build.environment>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <configuration>
+              <autoCreateCustomNetworks>true</autoCreateCustomNetworks>
+            </configuration>
+            <executions>
+              <execution>
+                <id>postgresql</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <verbose>true</verbose>
+                  <images>
+                    <image>
+                      <alias>${project.artifactId}-db</alias>
+                      <name>${postgresql.image.version}</name>
+                      <run>
+                        <net>${project.artifactId}</net>
+                        <containerNamePattern>%a</containerNamePattern>
+                        <ports>
+                          <port>5432:5432</port>
+                        </ports>
+                        <env>
+                          <POSTGRES_PASSWORD>root</POSTGRES_PASSWORD>
+                        </env>
+                        <wait>
+                          <log>database system is ready to accept connections</log>
+                          <time>30000</time>
+                        </wait>
+                      </run>
+                    </image>
+                  </images>
+                </configuration>
+              </execution>
+              <execution>
+                <id>liquibase</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <images>
+                    <image>
+                      <alias>${project.artifactId}-liquibase</alias>
+                      <name>${liquibase.image.version}</name>
+                      <run>
+                        <net>${project.artifactId}</net>
+                        <containerNamePattern>%a</containerNamePattern>
+                        <volumes>
+                          <bind>
+                            <volume>${project.build.outputDirectory}/liquibase:/liquibase/changelog</volume>
+                          </bind>
+                        </volumes>
+                        <cmd>
+                          <arg>--defaults-file=/liquibase/changelog/liquibase.properties</arg>
+                          <arg>update</arg>
+                        </cmd>
+                        <wait>
+                          <log>Liquibase command 'update' was executed successfully</log>
+                          <time>60000</time>
+                        </wait>
+                        <log>
+                          <enabled>true</enabled>
+                        </log>
+                      </run>
+                    </image>
+                  </images>
+                </configuration>
+              </execution>
+              <execution>
+                <id>verification</id>
+                <phase>integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <images>
+                    <image>
+                      <alias>${project.artifactId}-verification</alias>
+                      <name>${postgresql.image.version}</name>
+                      <run>
+                        <net>${project.artifactId}</net>
+                        <containerNamePattern>%a</containerNamePattern>
+                        <env>
+                          <PGPASSWORD>root</PGPASSWORD>
+                        </env>
+                        <cmd>
+                          <arg>psql</arg>
+                          <arg>-v</arg>
+                          <arg>ON_ERROR_STOP=1</arg>
+                          <arg>-h</arg>
+                          <arg>${project.artifactId}-db</arg>
+                          <arg>-U</arg>
+                          <arg>postgres</arg>
+                          <arg>-c</arg>
+                          <arg>SELECT id, code, description FROM state ORDER BY id</arg>
+                          <arg>-c</arg>
+                          <arg>SELECT id, code, description FROM gender ORDER BY id</arg>
+                          <arg>-c</arg>
+                          <arg>SELECT id, author, filename FROM databasechangelog ORDER BY orderexecuted</arg>
+                          <arg>-c</arg>
+                          <arg>SELECT 'verification completed' AS status</arg>
+                        </cmd>
+                        <wait>
+                          <log>verification completed</log>
+                          <time>30000</time>
+                        </wait>
+                        <log>
+                          <enabled>true</enabled>
+                        </log>
+                      </run>
+                    </image>
+                  </images>
+                </configuration>
+              </execution>
+              <execution>
+                <id>stop-containers</id>
+                <phase>post-integration-test</phase>
+                <goals>
+                  <goal>stop</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>external</id>
+      <properties>
+        <project.build.environment>external</project.build.environment>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>liquibase</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <verbose>true</verbose>
+                  <images>
+                    <image>
+                      <alias>${project.artifactId}-liquibase</alias>
+                      <name>${liquibase.image.version}</name>
+                      <run>
+                        <volumes>
+                          <bind>
+                            <volume>${project.build.outputDirectory}/liquibase:/liquibase/changelog</volume>
+                          </bind>
+                        </volumes>
+                        <env>
+                          <LIQUIBASE_COMMAND_URL>${env.DATABASE_URL}</LIQUIBASE_COMMAND_URL>
+                          <LIQUIBASE_COMMAND_USERNAME>${env.DATABASE_USERNAME}</LIQUIBASE_COMMAND_USERNAME>
+                          <LIQUIBASE_COMMAND_PASSWORD>${env.DATABASE_PASSWORD}</LIQUIBASE_COMMAND_PASSWORD>
+                        </env>
+                        <cmd>
+                          <arg>--defaults-file=/liquibase/changelog/liquibase.properties</arg>
+                          <arg>update</arg>
+                        </cmd>
+                        <wait>
+                          <log>Liquibase command 'update' was executed successfully</log>
+                          <time>60000</time>
+                        </wait>
+                        <log>
+                          <enabled>true</enabled>
+                        </log>
+                      </run>
+                    </image>
+                  </images>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+</project>

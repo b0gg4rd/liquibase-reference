@@ -1,0 +1,37 @@
+--liquibase formatted sql
+
+--changeset fcruz.coatli@gmail.com:load-state-mexico context:dml
+INSERT INTO state (id, code, description) VALUES
+  (1,  'AGS',   'Aguascalientes'),
+  (2,  'BC',    'Baja California'),
+  (3,  'BCS',   'Baja California Sur'),
+  (4,  'CAMP',  'Campeche'),
+  (5,  'COAH',  'Coahuila de Zaragoza'),
+  (6,  'COL',   'Colima'),
+  (7,  'CHIS',  'Chiapas'),
+  (8,  'CHIH',  'Chihuahua'),
+  (9,  'CDMX',  'Ciudad de México'),
+  (10, 'DGO',   'Durango'),
+  (11, 'GTO',   'Guanajuato'),
+  (12, 'GRO',   'Guerrero'),
+  (13, 'HGO',   'Hidalgo'),
+  (14, 'JAL',   'Jalisco'),
+  (15, 'MEX',   'México'),
+  (16, 'MICH',  'Michoacán de Ocampo'),
+  (17, 'MOR',   'Morelos'),
+  (18, 'NAY',   'Nayarit'),
+  (19, 'NL',    'Nuevo León'),
+  (20, 'OAX',   'Oaxaca'),
+  (21, 'PUE',   'Puebla'),
+  (22, 'QRO',   'Querétaro'),
+  (23, 'QROO',  'Quintana Roo'),
+  (24, 'SLP',   'San Luis Potosí'),
+  (25, 'SIN',   'Sinaloa'),
+  (26, 'SON',   'Sonora'),
+  (27, 'TAB',   'Tabasco'),
+  (28, 'TAMPS', 'Tamaulipas'),
+  (29, 'TLAX',  'Tlaxcala'),
+  (30, 'VER',   'Veracruz de Ignacio de la Llave'),
+  (31, 'YUC',   'Yucatán'),
+  (32, 'ZAC',   'Zacatecas');
+--rollback DELETE FROM state;
