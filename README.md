@@ -2,11 +2,19 @@
 
 ## Data Model
 
+| Color | Description  |
+|-------|--------------|
+| 🟦    | **Baseline** |
+| 🟨    | **Modified** |
+| 🟩    | **New**      |
+
 ```mermaid
 erDiagram
-  gender  ||--o{ person  : "gender_id"
-  person  ||--o{ address : "person_id"
-  state   ||--o{ address : "state_id"
+  gender       ||--o{ person         : "gender_id"
+  person       ||--o{ address        : "person_id"
+  state        ||--o{ address        : "state_id"
+  person       ||--o{ contact_method : "person_id (NEW)"
+  contact_type ||--o{ contact_method : "contact_type_id (NEW)"
 
   gender {
     smallint id PK
@@ -22,6 +30,7 @@ erDiagram
     uuid id PK
     varchar name
     smallint age
+    date birth_date "NEW"
     smallint gender_id FK
   }
   address {
@@ -31,20 +40,67 @@ erDiagram
     smallint state_id FK
     char zip_code
   }
+  contact_type {
+    smallint id PK "NEW"
+    varchar code UK "NEW"
+    varchar description UK "NEW"
+  }
+  contact_method {
+    uuid id PK "NEW"
+    uuid person_id FK "NEW"
+    smallint contact_type_id FK "NEW"
+    varchar value "NEW"
+    boolean is_primary "NEW"
+  }
+
+  classDef baseline fill:#dbe9f8,stroke:#1f5fa8,stroke-width:2px,color:#000
+  classDef changed fill:#fff3cd,stroke:#b8860b,stroke-width:2px,color:#000
+  classDef new fill:#d4edda,stroke:#2e7d32,stroke-width:2px,color:#000
+  class gender,state,address baseline
+  class person changed
+  class contact_type,contact_method new
 ```
 
 ---
 
 ## ChangeLog
 
-| Changeset                | Context | File                           | Description                                         |
-|--------------------------|---------|--------------------------------|-----------------------------------------------------|
-| `create-table-state`     | `ddl`   | `db.changelog-ddl-state.sql`   | Catalog `state(id, code, description)`              |
-| `create-table-gender`    | `ddl`   | `db.changelog-ddl-gender.sql`  | Catalog `gender(id, code, description)`             |
-| `create-table-person`    | `ddl`   | `db.changelog-ddl-person.sql`  | `person(id, name, age, gender_id)`                  |
-| `create-table-address`   | `ddl`   | `db.changelog-ddl-address.sql` | `address(id, person_id, street, state_id, zip_code)` |
-| `load-state-mexico`      | `dml`   | `db.changelog-dml-state.sql`   | The 32 Mexican states (`id` = INEGI key, `code` = abbreviation) |
-| `load-gender`            | `dml`   | `db.changelog-dml-gender.sql`  | `M` Masculino, `F` Femenino                         |
+| Changeset                       | Context | File                                     | Description                                                                                                                                  |
+|---------------------------------|---------|------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| `baseline-ddl`                  | `ddl`   | `db.changelog-ddl-baseline-schema.sql`          | Original schema from a `pg_dump` of `dev` enviroment. Marked as run when the tables already exist. |
+| `baseline-dml`                  | `dml`   | `db.changelog-dml-baseline-data.sql`          | Original data from a `pg_dump` of `dev` environment. Marked as run when the catalogs already have rows. |
+| `add-column-person-birth-date`  | `ddl`   | `db.changelog-ddl-person-birth-date.sql` | `person.birth_date DATE` (nullable)                                                                                                          |
+| `create-table-contact-type`     | `ddl`   | `db.changelog-ddl-contact-type.sql`      | Catalog `contact_type(id, code, description)`                                                                                                |
+| `create-table-contact-method`   | `ddl`   | `db.changelog-ddl-contact-method.sql`    | `contact_method(id, person_id, contact_type_id, value, is_primary)`                                                                          |
+| `load-contact-type`             | `dml`   | `db.changelog-dml-contact-type.sql`      | `PHONE`, `MOBILE`, `EMAIL`                                                                                                                   |
+
+---
+
+## Baseline
+
+The first two changesets (`baseline-ddl`, `baseline-dml`) are a snapshot of the schema that already existed in
+`liquibase-reference-dev`, taken with `pg_dump`. They have `onFail:MARK_RAN` preconditions, so the same
+changelog works in both profiles:
+
+| Database                           | Baseline changesets               |
+|------------------------------------|-----------------------------------|
+| Empty (`ci`)                       | Executed: create the schema       |
+| Already has the schema (`dev`)     | Marked as run, nothing is touched |
+
+> [!CAUTION]
+>**Never edit** an applied baseline changeset (its checksum changes); **add a new changeset instead**.
+
+### How the baseline was obtained
+
+Taken from the `dev` environment **before** applying any changeset that is not part of the baseline:
+
+```shell
+docker exec liquibase-reference-dev \
+  pg_dump -U postgres -d postgres --schema-only \
+    --no-owner --no-privileges --no-tablespaces \
+    -T 'databasechangelog*' -f /tmp/baseline-schema.sql
+docker cp liquibase-reference-dev:/tmp/baseline-schema.sql ./baseline-schema.sql
+```
 
 ---
 

@@ -13,7 +13,7 @@
   <description>Liquibase Reference - person, address, state, gender</description>
 
   <properties>
-    <project.build.environment>managed</project.build.environment>
+    <project.build.environment>ci</project.build.environment>
     <project.build.filterDirectory>${basedir}/src/main/filters</project.build.filterDirectory>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -175,6 +175,8 @@
                           <arg>SELECT id, code, description FROM state ORDER BY id</arg>
                           <arg>-c</arg>
                           <arg>SELECT id, code, description FROM gender ORDER BY id</arg>
+                          <arg>-c</arg>
+                          <arg>SELECT id, code, description FROM contact_type ORDER BY id</arg>
                         </cmd>
                         <log>
                           <enabled>true</enabled>

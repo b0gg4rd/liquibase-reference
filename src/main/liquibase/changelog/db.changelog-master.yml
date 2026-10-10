@@ -1,21 +1,22 @@
 databaseChangeLog:
+  # Baseline
+  - include:
+      file: db.changelog-ddl-baseline-schema.sql
+      relativeToChangelogFile: true
+  - include:
+      file: db.changelog-dml-baseline-data.sql
+      relativeToChangelogFile: true
   # DDL
   - include:
-      file: db.changelog-ddl-state.sql
+      file: db.changelog-ddl-person-birth-date.sql
       relativeToChangelogFile: true
   - include:
-      file: db.changelog-ddl-gender.sql
+      file: db.changelog-ddl-contact-type.sql
       relativeToChangelogFile: true
   - include:
-      file: db.changelog-ddl-person.sql
-      relativeToChangelogFile: true
-  - include:
-      file: db.changelog-ddl-address.sql
+      file: db.changelog-ddl-contact-method.sql
       relativeToChangelogFile: true
   # DML
   - include:
-      file: db.changelog-dml-state.sql
-      relativeToChangelogFile: true
-  - include:
-      file: db.changelog-dml-gender.sql
+      file: db.changelog-dml-contact-type.sql
       relativeToChangelogFile: true
