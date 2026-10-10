@@ -50,10 +50,10 @@ erDiagram
 
 ## Profiles
 
-| Profile    | Phase                  | Description                                                                 |
-|------------|------------------------|-----------------------------------------------------------------------------|
-| `ci`  | `pre-integration-test`<br />and<br/>`post-integration-test` | Maven starts `postgres:17.10` (port `5432`) and runs Liquibase `update`.<br />Uses `ci.properties`. |
-| `dev` | `pre-integration-test` | Runs only Liquibase `update`against a database already running outside Maven.<br />Uses `dev.properties`. |
+| Profile    | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| `ci`  | Maven starts `postgres:17.10` (port `5432`) and runs Liquibase `update`.<br />Uses `ci.properties`. |
+| `dev` | Runs only Liquibase `update` against a database already running outside Maven.<br />Uses `dev.properties`. |
 
 ---
 
@@ -74,7 +74,6 @@ flowchart LR
 ```
 
 ---
-
 
 ### Continuous Integration
 
