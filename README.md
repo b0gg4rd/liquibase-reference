@@ -1,21 +1,6 @@
 # Liquibase Reference
 
-## Overview
-
-| Changeset                | Context | File                           | Description                                         |
-|--------------------------|---------|--------------------------------|-----------------------------------------------------|
-| `create-table-state`     | `ddl`   | `db.changelog-ddl-state.sql`   | Catalog `state(id, code, description)`              |
-| `create-table-gender`    | `ddl`   | `db.changelog-ddl-gender.sql`  | Catalog `gender(id, code, description)`             |
-| `create-table-person`    | `ddl`   | `db.changelog-ddl-person.sql`  | `person(id, name, age, gender_id)`                  |
-| `create-table-address`   | `ddl`   | `db.changelog-ddl-address.sql` | `address(id, person_id, street, state_id, zip_code)` |
-| `load-state-mexico`      | `dml`   | `db.changelog-dml-state.sql`   | The 32 Mexican states (`id` = INEGI key, `code` = abbreviation) |
-| `load-gender`            | `dml`   | `db.changelog-dml-gender.sql`  | `M` Masculino, `F` Femenino                         |
-
----
-
-## Diagrams
-
-### Data model
+## Data Model
 
 ```mermaid
 erDiagram
@@ -48,14 +33,18 @@ erDiagram
   }
 ```
 
-### Build flow (profile `managed`)
+---
 
-```mermaid
-flowchart LR
-  SRC[src/main/liquibase\nsrc/main/filters] -->|resources + filtering| OUT[target/classes/liquibase]
-  OUT -->|bind /liquibase/changelog| LB[[Liquibase container]]
-  LB -->|update| DB[(PostgreSQL)]
-```
+## ChangeLog
+
+| Changeset                | Context | File                           | Description                                         |
+|--------------------------|---------|--------------------------------|-----------------------------------------------------|
+| `create-table-state`     | `ddl`   | `db.changelog-ddl-state.sql`   | Catalog `state(id, code, description)`              |
+| `create-table-gender`    | `ddl`   | `db.changelog-ddl-gender.sql`  | Catalog `gender(id, code, description)`             |
+| `create-table-person`    | `ddl`   | `db.changelog-ddl-person.sql`  | `person(id, name, age, gender_id)`                  |
+| `create-table-address`   | `ddl`   | `db.changelog-ddl-address.sql` | `address(id, person_id, street, state_id, zip_code)` |
+| `load-state-mexico`      | `dml`   | `db.changelog-dml-state.sql`   | The 32 Mexican states (`id` = INEGI key, `code` = abbreviation) |
+| `load-gender`            | `dml`   | `db.changelog-dml-gender.sql`  | `M` Masculino, `F` Femenino                         |
 
 ---
 
@@ -63,8 +52,8 @@ flowchart LR
 
 | Profile    | Phase                  | Description                                                                 |
 |------------|------------------------|-----------------------------------------------------------------------------|
-| `managed`  | `pre-integration-test`<br />and<br/>`post-integration-test` | Maven starts `postgres:17.10` (port `5432`), runs Liquibase `update`, queries the data with `psql` and stops the containers.<br />Uses `managed.properties`. |
-| `external` | `pre-integration-test` | Runs only Liquibase against a database already running outside Maven, using `DATABASE_URL`, `DATABASE_USERNAME` and `DATABASE_PASSWORD`.<br />Uses `external.properties`. |
+| `ci`  | `pre-integration-test`<br />and<br/>`post-integration-test` | Maven starts `postgres:17.10` (port `5432`) and runs Liquibase `update`.<br />Uses `ci.properties`. |
+| `dev` | `pre-integration-test` | Runs only Liquibase `update`against a database already running outside Maven.<br />Uses `dev.properties`. |
 
 ---
 
@@ -74,20 +63,20 @@ flowchart LR
 
 - [Docker](https://docs.docker.com/engine/install/)
 
-### Managed
+### Build Flow
 
-```shell
-docker run \
-  --rm \
-  -w $(pwd) \
-  -v $(pwd):$(pwd) \
-  -v ${HOME}/.m2:/root/.m2 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  azul/zulu-openjdk-alpine:25 \
-  ./mvnw -Djansi.force=true -ntp -P managed -U clean verify
+```mermaid
+flowchart LR
+  PRFL["-P [ci,dev,stg,prod]"] -->|mvnw| SRC
+  SRC[src/main/liquibase\nsrc/main/filters] -->|resources + filtering| OUT[target/classes/liquibase]
+  OUT -->|volume /liquibase/changelog| LB[[Liquibase container]]
+  LB -->|update| DB[("PostgreSQL\n[ci, dev, stg, prod]")]
 ```
 
-### External
+---
+
+
+### Continuous Integration
 
 ```shell
 docker run \
@@ -96,9 +85,30 @@ docker run \
   -v $(pwd):$(pwd) \
   -v ${HOME}/.m2:/root/.m2 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -e DATABASE_URL=jdbc:postgresql://*host*:**port*/*database* \
-  -e DATABASE_USERNAME=*username* \
-  -e DATABASE_PASSWORD=*password* \
   azul/zulu-openjdk-alpine:25 \
-  ./mvnw -Djansi.force=true -ntp -P external -U clean verify
+  ./mvnw -Djansi.force=true -ntp -P ci -U clean verify
+```
+
+### Development Environment
+
+```shell
+docker run \
+  --rm \
+  -w $(pwd) \
+  -v $(pwd):$(pwd) \
+  -v ${HOME}/.m2:/root/.m2 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e DEV_DATABASE_URL=jdbc:postgresql://localhost:5432/postgres \
+  -e DEV_DATABASE_USERNAME=postgres \
+  -e DEV_DATABASE_PASSWORD=root \
+  azul/zulu-openjdk-alpine:25 \
+  ./mvnw -Djansi.force=true -ntp -P dev -U clean verify
+```
+
+```shell
+docker run -d \
+  -p 5432:5432 \
+  --name=liquibase-reference-dev \
+  -e POSTGRES_PASSWORD=root \
+  postgres:17.10
 ```

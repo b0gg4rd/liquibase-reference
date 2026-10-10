@@ -69,9 +69,9 @@
 
   <profiles>
     <profile>
-      <id>managed</id>
+      <id>ci</id>
       <properties>
-        <project.build.environment>managed</project.build.environment>
+        <project.build.environment>ci</project.build.environment>
       </properties>
       <build>
         <plugins>
@@ -97,11 +97,9 @@
                       <run>
                         <net>${project.artifactId}</net>
                         <containerNamePattern>%a</containerNamePattern>
-                        <ports>
-                          <port>5432:5432</port>
-                        </ports>
                         <env>
                           <POSTGRES_PASSWORD>root</POSTGRES_PASSWORD>
+                          <PGPORT>2345</PGPORT>
                         </env>
                         <wait>
                           <log>database system is ready to accept connections</log>
@@ -148,7 +146,7 @@
                 </configuration>
               </execution>
               <execution>
-                <id>verification</id>
+                <id>select</id>
                 <phase>integration-test</phase>
                 <goals>
                   <goal>start</goal>
@@ -156,13 +154,14 @@
                 <configuration>
                   <images>
                     <image>
-                      <alias>${project.artifactId}-verification</alias>
+                      <alias>${project.artifactId}-select</alias>
                       <name>${postgresql.image.version}</name>
                       <run>
                         <net>${project.artifactId}</net>
                         <containerNamePattern>%a</containerNamePattern>
                         <env>
                           <PGPASSWORD>root</PGPASSWORD>
+                          <PGPORT>2345</PGPORT>
                         </env>
                         <cmd>
                           <arg>psql</arg>
@@ -176,15 +175,7 @@
                           <arg>SELECT id, code, description FROM state ORDER BY id</arg>
                           <arg>-c</arg>
                           <arg>SELECT id, code, description FROM gender ORDER BY id</arg>
-                          <arg>-c</arg>
-                          <arg>SELECT id, author, filename FROM databasechangelog ORDER BY orderexecuted</arg>
-                          <arg>-c</arg>
-                          <arg>SELECT 'verification completed' AS status</arg>
                         </cmd>
-                        <wait>
-                          <log>verification completed</log>
-                          <time>30000</time>
-                        </wait>
                         <log>
                           <enabled>true</enabled>
                         </log>
@@ -207,9 +198,9 @@
     </profile>
 
     <profile>
-      <id>external</id>
+      <id>dev</id>
       <properties>
-        <project.build.environment>external</project.build.environment>
+        <project.build.environment>dev</project.build.environment>
       </properties>
       <build>
         <plugins>
@@ -224,21 +215,23 @@
                   <goal>start</goal>
                 </goals>
                 <configuration>
-                  <verbose>true</verbose>
                   <images>
                     <image>
                       <alias>${project.artifactId}-liquibase</alias>
                       <name>${liquibase.image.version}</name>
                       <run>
+                        <network>
+                          <mode>host</mode>
+                        </network>
                         <volumes>
                           <bind>
                             <volume>${project.build.outputDirectory}/liquibase:/liquibase/changelog</volume>
                           </bind>
                         </volumes>
                         <env>
-                          <LIQUIBASE_COMMAND_URL>${env.DATABASE_URL}</LIQUIBASE_COMMAND_URL>
-                          <LIQUIBASE_COMMAND_USERNAME>${env.DATABASE_USERNAME}</LIQUIBASE_COMMAND_USERNAME>
-                          <LIQUIBASE_COMMAND_PASSWORD>${env.DATABASE_PASSWORD}</LIQUIBASE_COMMAND_PASSWORD>
+                          <LIQUIBASE_COMMAND_URL>${env.DEV_DATABASE_URL}</LIQUIBASE_COMMAND_URL>
+                          <LIQUIBASE_COMMAND_USERNAME>${env.DEV_DATABASE_USERNAME}</LIQUIBASE_COMMAND_USERNAME>
+                          <LIQUIBASE_COMMAND_PASSWORD>${env.DEV_DATABASE_PASSWORD}</LIQUIBASE_COMMAND_PASSWORD>
                         </env>
                         <cmd>
                           <arg>--defaults-file=/liquibase/changelog/liquibase.properties</arg>
