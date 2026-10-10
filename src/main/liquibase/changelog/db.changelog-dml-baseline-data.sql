@@ -2,6 +2,7 @@
 
 --changeset fcruz.coatli@gmail.com:baseline-dml context:dml
 --preconditions onFail:MARK_RAN onError:HALT
+--precondition-sql-check expectedResult:0 SELECT (SELECT COUNT(*) FROM public.state) + (SELECT COUNT(*) FROM public.gender)
 
 --
 -- PostgreSQL database dump

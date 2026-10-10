@@ -2,6 +2,7 @@
 
 --changeset fcruz.coatli@gmail.com:baseline-ddl context:ddl
 --preconditions onFail:MARK_RAN onError:HALT
+--precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = current_schema() AND table_name IN ('state', 'gender', 'person', 'address')
 
 --
 -- PostgreSQL database dump

@@ -78,8 +78,8 @@ erDiagram
 
 ## Baseline
 
-The first two changesets (`baseline-ddl`, `baseline-dml`) are a snapshot of the schema that already existed in
-`liquibase-reference-dev`, taken with `pg_dump`. They have `onFail:MARK_RAN` preconditions, so the same
+The first two changesets (`baseline-ddl` and `baseline-dml`) are a snapshot of the schema that already existed in
+`dev` environment, taken with `pg_dump`. They have `onFail:MARK_RAN` preconditions, so the same
 changelog works in both profiles:
 
 | Database                           | Baseline changesets               |
@@ -88,7 +88,7 @@ changelog works in both profiles:
 | Already has the schema (`dev`)     | Marked as run, nothing is touched |
 
 > [!CAUTION]
->**Never edit** an applied baseline changeset (its checksum changes); **add a new changeset instead**.
+>**Never edit** an applied baseline changeset (its checksum changes); **add a new** changeset instead.
 
 ### How the baseline was obtained
 
@@ -158,12 +158,4 @@ docker run \
   -e DEV_DATABASE_PASSWORD=root \
   azul/zulu-openjdk-alpine:25 \
   ./mvnw -Djansi.force=true -ntp -P dev -U clean verify
-```
-
-```shell
-docker run -d \
-  -p 5432:5432 \
-  --name=liquibase-reference-dev \
-  -e POSTGRES_PASSWORD=root \
-  postgres:17.10
 ```
