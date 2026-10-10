@@ -106,6 +106,7 @@ docker run \
 
 ```shell
 docker run -d \
+  --rm \
   -p 5432:5432 \
   --name=liquibase-reference-dev \
   -e POSTGRES_PASSWORD=root \
